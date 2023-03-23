@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Países</title>
+</head>
+<body>
+    <h1>Países</h1>
+    <select id="cantidad">
+        <option value="5">5</option>
+        <option value="10">10</option>
+        <option value="20">20</option>
+    </select>
+    <button id="obtener">Obtener lista</button>
+    <button id="siguiente" disabled>Siguiente</button>
+    <table id="tabla">
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Continente</th>
+                <th>Población</th>
+                <th>PIB 2019</th>
+                <th>PIB 2020</th>
+            </tr>
+        </thead>
+        <tbody id="tabla-cuerpo">
+            <!-- Las filas se agregarán dinámicamente -->
+        </tbody>
+    </table>
+
+    <h2>Agregar un nuevo país</h2>
+    <form id="formulario">
+        <label for="nombre">Nombre:</label>
+        <input type="text" id="nombre" name="nombre" required><br>
+
+        <label for="continente">Continente:</label>
+        <input type="text" id="continente" name="continente" required><br>
+
+        <label for="poblacion">Población:</label>
+        <input type="number" id="poblacion" name="poblacion" required><br>
+
+        <label for="pib_2019">PIB 2019:</label>
+        <input type="number" id="pib_2019" name="pib_2019" required><br>
+
+        <label for="pib_2020">PIB 2020:</label>
+        <input type="number" id="pib_2020" name="pib_2020" required><br>
+
+        <button type="submit">Agregar</button>
+    </form>
+
+    <h2>Eliminar un país</h2>
+    <form id="form-eliminar">
+      <label for="nombre-eliminar">Nombre:</label>
+      <input type="text" id="nombre-eliminar" name="nombre-eliminar" required><br>
+    
+      <button type="submit">Eliminar</button>
+      <p id="mensaje-error-eliminar" style="color: red;"></p>
+    </form>
+    
+
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+      // Para mostrar la lista de países:
+      const apiUrl = 'http://localhost:3000'; 
+const cantidadSelect = document.getElementById('cantidad');
+const obtenerBtn = document.getElementById('obtener');
+const siguienteBtn = document.getElementById('siguiente');
+const tablaCuerpo = document.getElementById('tabla-cuerpo');
+
+let offset = 0;
+
+function mostrarPaises(paises) {
+  tablaCuerpo.innerHTML = '';
+
+  for (const pais of paises) {
+    const fila = document.createElement('tr');
+    fila.innerHTML = `
+      <td>${pais.nombre}</td>
+      <td>${pais.continente}</td>
+      <td>${pais.poblacion}</td>
+      <td>${pais.pib_2019}</td>
+      <td>${pais.pib_2020}</td>
+    `;
+    tablaCuerpo.appendChild(fila);
+  }
+}
+
+async function obtenerLista() {
+  try {
+    const limit = parseInt(cantidadSelect.value);
+    const response = await axios.get(`${apiUrl}/paises`, { params: { limit, offset } });
+
+    if (response.status === 200) {
+      mostrarPaises(response.data);
+      siguienteBtn.disabled = response.data.length < limit;
+    } else {
+      alert('Error al obtener la lista de países.');
+    }
+  } catch (error) {
+    console.error(error);
+    alert('Error al comunicarse con el servidor.');
+  }
+}
+
+obtenerBtn.addEventListener('click', () => {
+  offset = 0;
+  obtenerLista();
+});
+
+siguienteBtn.addEventListener('click', () => {
+  offset += parseInt(cantidadSelect.value);
+  obtenerLista();
+});
+
+
+
+
+// Para añadir un país:
+// Para añadir un país:
+window.addEventListener('load', () => {
+  const apiUrl = 'http://localhost:3000';
+
+  const formulario = document.getElementById('formulario');
+  const mensajeError = document.getElementById('mensaje-error');
+
+  async function agregarPais(event) {
+    event.preventDefault();
+
+    const nombre = document.getElementById('nombre').value;
+    const continente = document.getElementById('continente').value;
+    const poblacion = document.getElementById('poblacion').value;
+    const pib2019 = document.getElementById('pib_2019').value;
+    const pib2020 = document.getElementById('pib_2020').value;
+
+    try {
+      const response = await axios.post(`${apiUrl}/paises`, {
+        nombre,
+        continente,
+        poblacion,
+        pib_2019: pib2019,
+        pib_2020: pib2020,
+      });
+
+      if (response.status === 201) {
+        alert('País agregado correctamente');
+        formulario.reset();
+        obtenerLista(); // Recarga la lista de países
+      } else {
+        alert('Error al agregar el país');
+      }
+    } catch (error) {
+      console.error(error);
+
+      if (error.response && error.response.data) {
+        mensajeError.innerText = error.response.data;
+      } else {
+        mensajeError.innerText = 'Error al comunicarse con el servidor';
+      }
+    }
+  }
+
+  formulario.addEventListener('submit', agregarPais);
+});
+
+
+
+// Función para actualizar la lista de países después de eliminar uno
+function actualizarListaDespuesDeEliminar() {
+    offset = 0;
+    obtenerLista();
+  }
+
+  // Para eliminar un país:
+  const formEliminar = document.getElementById('form-eliminar');
+  const nombreEliminarInput = document.getElementById('nombre-eliminar');
+  const mensajeErrorEliminar = document.getElementById('mensaje-error-eliminar');
+
+  async function eliminarPais(event) {
+    event.preventDefault();
+
+    const nombre = nombreEliminarInput.value.trim();
+
+    try {
+      const response = await axios.delete(`${apiUrl}/paises/${nombre}`);
+
+      if (response.status === 200) {
+        alert('País eliminado correctamente');
+        formEliminar.reset();
+        // Actualizar la lista de países después de eliminar uno
+        actualizarListaDespuesDeEliminar();
+      } else {
+        alert('Error al eliminar el país');
+      }
+    } catch (error) {
+      console.error(error);
+
+      if (error.response && error.response.data) {
+        mensajeErrorEliminar.innerText = error.response.data;
+      } else {
+        mensajeErrorEliminar.innerText = 'Error al comunicarse con el servidor';
+      }
+    }
+  }
+
+  formEliminar.addEventListener('submit', eliminarPais);
+</script>
